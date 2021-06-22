@@ -1,0 +1,94 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  color: #1a2a3a;
+}
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-image: url("../img/background.png");
+}
+header,
+footer,
+#figure p {
+  text-align: center;
+}
+header {
+  letter-spacing: 0.5em;
+  box-shadow: 0 2px 2px #aaa;
+  background-image: url("../img/index.gif");
+}
+header h2 img {
+  vertical-align: middle;
+}
+footer {
+  color: #fff;
+  background: #444;
+  padding: 0.5em;
+}
+main {
+  display: flex;
+  flex: 1;
+}
+main > div {
+  flex: 1;
+  padding: 1.5em;
+  line-height: 1.9em;
+}
+#aside div {
+  margin: 20px auto;
+}
+#aside div p:nth-child(odd) {
+  border-bottom: 1px solid #999;
+}
+#figure {
+  border-left: 1px solid #999;
+  border-right: 1px solid #999;
+}
+
+#aside div p:nth-child(odd),
+#figure p span {
+  font-size: 1.5em;
+}
+canvas {
+  display: block;
+  margin: 30px;
+  box-shadow: 4px 4px 4px #999;
+}
+#menu div {
+  width: 150px;
+  margin: 2em auto;
+  border: 1px solid #999;
+  text-align: center;
+  padding: 0.5em 0;
+  border-radius: 4px;
+  -webkit-border-radius: 4px;
+  -moz-border-radius: 4px;
+  -ms-border-radius: 4px;
+  -o-border-radius: 4px;
+  box-shadow: 0 0 2px #999;
+}
+#menu div:hover {
+  cursor: pointer;
+  color: #ffffff;
+  background-color: #666;
+}
+
+@media only screen and (max-width: 992px) {
+  main {
+    flex-direction: column;
+  }
+  #figure {
+    border: none;
+    padding: 0;
+  }
+  canvas {
+    margin: 0px auto 20px;
+  }
+  #menu div {
+    margin: 0 auto 10px;
+    padding: 0;
+  }
+}
