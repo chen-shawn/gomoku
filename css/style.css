@@ -4,11 +4,9 @@
   box-sizing: border-box;
   color: #1a2a3a;
 }
-body {
+.wrapper {
   min-height: 100vh;
   background-image: url('../images/background.png');
-}
-.wrapper {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -30,7 +28,11 @@ body {
 }
 .menu > div:hover {
   color: #eee;
-  background-color:steelblue;
+  background-color: steelblue;
+}
+.menu > div:active {
+  color: #1a2a3a;
+  background-color: transparent;
 }
 footer {
   background-color: #1a1a1a;
@@ -38,11 +40,17 @@ footer {
   position: absolute;
   bottom: 0;
   width: 100%;
-  padding: 0.4rem
+  padding: 0.4rem;
 }
 footer span {
   color: #eee;
   text-align: center;
   line-height: 1.2rem;
   font-size: 1.2rem;
+}
+
+@media screen and (max-width: 813px) {
+  .wrapper {
+    padding-top: 4rem;
+  }
 }
