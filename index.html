@@ -3,45 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=0.8" />
     <link rel="stylesheet" href="css/style.css" />
     <title>五子棋</title>
   </head>
   <body>
-    <header>
-      <h2><img src="img/header.png" /><span>五子棋</span></h2>
-    </header>
-    <main>
-      <div id="aside">
-        <div>
-          <p class="title">简介</p>
-          <p>
-            五子棋是一种两人对弈的纯策略型棋类游戏，通常双方分别使用黑白两色的棋子，下在棋盘直线与横线的交叉点上，先形成5子连线者获胜。
-            棋具与围棋通用，起源于中国上古时代的传统黑白棋种之一。主要流行于华人和汉字文化圈的国家以及欧美一些地区。
-          </p>
-        </div>
-        <div>
-          <p class="title">规则</p>
-          <p>
-            行棋: <span>黑子先行，一人轮流一著下于棋盘空点处。</span><br />
-            胜负:
-            <span
-              >先把五枚或以上己棋相连成任何横纵斜方向为胜。（长连仍算胜利）</span
-            >
-          </p>
-        </div>
+    <div class="wrapper">
+      <div class="mode"><span id="status">玩家对战</span></div>
+      <div class="figure">
+        <canvas id="chess" width="450px" height="450px"></canvas>
       </div>
-      <div id="figure">
-        <canvas id="chessBoard" width="450px" height="450px"></canvas>
-        <p>当前模式：<span id="status">玩家对战</span></p>
-      </div>
-      <div id="menu">
+      <div class="menu">
         <div id="withdraw">悔棋</div>
+        <div id="prompt">提示</div>
         <div id="restart">重新开局</div>
         <div id="changeMode">切换模式</div>
       </div>
-    </main>
-    <footer>©&nbsp;2021 Copyright&nbsp;&nbsp;在线五子棋</footer>
+    </div>
+    <footer><span>©&nbsp;2021 Copyright&nbsp;&nbsp;在线五子棋</span></footer>
     <script src="js/script.js"></script>
   </body>
 </html>

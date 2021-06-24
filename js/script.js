@@ -1,21 +1,29 @@
 // 定义棋局对象
-let chess = {
-  // 定义游戏模式，0为玩家对战; 1为人机对战, AI后手; 2为人机对战, AI先手
-  aiMode: 0,
-  // 走子记录数组
+const Chess = {
+  // 定义游戏模式，0 为玩家对战；1 为人机对战，电脑后手；2 为人机对战，电脑先手
+  gameMode: 0,
+  // 记录走子坐标，二维数组
   stepRecord: [],
   // 棋盘上交叉点的棋子类型数组
-  chessPiece: [],
-  // 赢法数组
+  chessCross: [],
+  // 赢法数组，三维数组。i, j, k 对应横坐标，纵坐标和第 k 种赢法
   wins: [],
   // 赢法种数
   count: 0,
-  // 赢法得分统计数组
-  blackScore: [],
-  whiteScore: [],
+  // 得分统计数组，一维数组。索引对应的是第 k 种赢法，得分为 5 时获胜
+  blackWin: [],
+  whiteWin: [],
+  // 判断对局是否结束
+  over: false,
+  // 当前落下的是否是黑子
+  black: true,
+  // 人机模式下计算机评估棋盘所有落子点得分数组
+  aiBlackScore: [],
+  aiWhiteScore: [],
 };
+
 // 封装赢法数组构建函数
-chess.createWins = function () {
+Chess.createWins = function () {
   for (let i = 0; i < 15; i++) {
     this.wins[i] = [];
     for (let j = 0; j < 15; j++) {
@@ -60,69 +68,33 @@ chess.createWins = function () {
   }
 };
 
-// 清理棋盘上指定交叉点的棋子
-chess.clearChessPiece = function (i, j) {
-  this.chessPiece[i][j] = 0;
-  //
-  for (let k = 0; k < this.count; k++) {
-    if (this.wins[i][j][k]) {
-      if (!this.black) {
-        this.blackScore[k]--;
-      } else {
-        this.whiteScore[k]--;
-      }
-    }
-  }
-  let x = i * 30 + 15;
-  let y = j * 30 + 15;
-  this.context.clearRect(x - 15, y - 15, 30, 30);
-  this.context.beginPath();
-  this.context.closePath();
-  // 重置坐标类型
-  this.chessPiece[i][j] = 0;
-  // 重绘背景
-  this.context.fillStyle = "#fafafa";
-  this.context.fillRect(x - 15, y - 15, 30, 30);
-  // 重绘删除部分的棋盘线
-  this.context.strokeStyle = "#4a5a6a";
-  this.context.moveTo(x, y - 15);
-  this.context.lineTo(x, y + 15);
-  this.context.moveTo(x - 15, y);
-  this.context.lineTo(x + 15, y);
-  this.context.stroke();
-};
 // 初始化棋盘
-chess.start = function () {
-  // 绘制棋盘
-  if (!chessBoard) {
-    window.alert("你的浏览器不支持canvas!");
-    return;
-  }
-  this.context = chessBoard.getContext("2d");
+Chess.initChessBoard = function (elem) {
+  // 获取 canvas 上下文
+  this.context = elem.getContext('2d');
   // 重新开局
   this.over = false;
-  // 当前步时黑棋还是白棋
+  // 初始化第一步为黑棋
   this.black = true;
   // 清理canvas上所有元素
   this.context.clearRect(0, 0, 450, 450);
-  this.context.beginPath();
   // 初始化得分统计数组
   for (let k = 0; k < this.count; k++) {
-    this.blackScore[k] = 0;
-    this.whiteScore[k] = 0;
+    this.blackWin[k] = 0;
+    this.whiteWin[k] = 0;
   }
-  // 初始化棋子类型, 0表示没有棋子, 1表示黑棋, 2表示白棋
+  // 初始化棋子类型, 0 表示没有棋子, 1 表示黑棋, 2 表示白棋
   for (let i = 0; i < 15; i++) {
-    this.chessPiece[i] = [];
+    this.chessCross[i] = [];
     for (let j = 0; j < 15; j++) {
-      this.chessPiece[i][j] = 0;
+      this.chessCross[i][j] = 0;
     }
   }
   // 绘制棋盘背景
-  this.context.fillStyle = "#fafafa";
+  this.context.fillStyle = '#fafafa';
   this.context.fillRect(0, 0, 450, 450);
   // 绘制棋盘线
-  this.context.strokeStyle = "#4a5a6a";
+  this.context.beginPath();
   for (let i = 0; i < 15; i++) {
     // 绘制横线
     this.context.moveTo(15 + i * 30, 15);
@@ -131,33 +103,20 @@ chess.start = function () {
     this.context.moveTo(15, 15 + i * 30);
     this.context.lineTo(435, 15 + i * 30);
   }
+  this.context.strokeStyle = '#4a5a6a';
+  // 先关闭再描线会导致最后一条先被重复绘制，因此这里必须先描线再关闭
   this.context.stroke();
-  if (this.aiMode == 2) {
-    this.chessPiece[7][7] = 1;
-    this.oneStep(7, 7);
-    this.black = !this.black;
-  }
-};
-// 获取鼠标坐标开始绘制
-chess.getTarget = function (i, j) {
-  if (chess.chessPiece[i][j] == 0) {
-    if (this.black) {
-      this.chessPiece[i][j] = 1;
-    } else {
-      this.chessPiece[i][j] = 2;
-    }
-    this.oneStep(i, j);
-    this.stepScore(i, j);
-    this.black = !this.black;
-    // ai模式
-    if (this.aiMode) {
-      this.aiStep();
-    }
+  this.context.closePath();
+  // 如果是人机模式且电脑先手，则先在棋盘中央下一步棋
+  if (this.gameMode === 2) {
+    this.doOneStep(7, 7);
   }
 };
 
 // 封装指定交叉点绘制棋子函数
-chess.oneStep = function (i, j) {
+Chess.doOneStep = function (i, j) {
+  // 判断当前交叉点有无棋子
+  if (this.chessCross[i][j] !== 0) return false;
   let gradient = this.context.createRadialGradient(
     15 + i * 30 + 2,
     15 + j * 30 - 2,
@@ -167,117 +126,162 @@ chess.oneStep = function (i, j) {
     15
   );
   if (this.black) {
-    gradient.addColorStop(0, "#aaa");
-    gradient.addColorStop(1, "#000");
+    // 棋子类型为黑棋
+    this.chessCross[i][j] = 1;
+    gradient.addColorStop(0, '#aaa');
+    gradient.addColorStop(1, '#000');
   } else {
-    gradient.addColorStop(0, "#fff");
-    gradient.addColorStop(1, "#aaa");
+    // 棋子类型为白棋
+    this.chessCross[i][j] = 2;
+    gradient.addColorStop(0, '#fff');
+    gradient.addColorStop(1, '#aaa');
   }
-  this.context.fillStyle = gradient;
   this.context.beginPath();
   this.context.arc(15 + i * 30, 15 + j * 30, 13, 0, Math.PI * 2);
   this.context.closePath();
+  this.context.fillStyle = gradient;
   this.context.fill();
+  // 当前交叉点添加到落子记录
   this.stepRecord.push([i, j]);
+  // 调用得分统计函数
+  this.stepScore(i, j);
+  // 必须在得分统计函数调用以后再反转当前黑白棋回合
+  this.black = !this.black;
 };
+
 // 封装得分统计函数，每下一步棋判断都判断一次
-chess.stepScore = function (i, j) {
+Chess.stepScore = function (i, j) {
   for (let k = 0; k < this.count; k++) {
     if (this.wins[i][j][k]) {
       if (this.black) {
-        this.blackScore[k]++;
-        this.whiteScore[k] += 6;
+        this.blackWin[k]++;
+        this.whiteWin[k] += 6;
       } else {
-        this.blackScore[k] += 6;
-        this.whiteScore[k]++;
+        this.blackWin[k] += 6;
+        this.whiteWin[k]++;
       }
-      if (this.blackScore[k] == 5) {
-        setTimeout(function () {
-          window.alert("黑棋胜！");
-        }, 0);
+      // 得分为 5 即决出胜负
+      if (this.blackWin[k] == 5) {
+        setTimeout(window.alert('黑棋胜！'), 0);
         this.over = true;
-      } else if (this.whiteScore[k] == 5) {
-        setTimeout(function () {
-          window.alert("白棋胜！");
-        }, 0);
+        return false;
+      } else if (this.whiteWin[k] == 5) {
+        setTimeout(window.alert('白棋胜！'), 0);
         this.over = true;
+        return false;
       }
     }
   }
 };
+
+// 清理棋盘上指定交叉点的棋子
+Chess.clearChessCross = function (i, j) {
+  // 重置交叉点棋子类型
+  this.chessCross[i][j] = 0;
+  // 遍历所有赢法，减去得分
+  for (let k = 0; k < this.count; k++) {
+    if (this.wins[i][j][k]) {
+      if (!this.black) {
+        this.blackWin[k]--;
+        this.whiteWin[k] -= 6;
+      } else {
+        this.whiteWin[k]--;
+        this.blackWin[k] -= 6;
+      }
+    }
+  }
+  // 清除交叉点周围小方块
+  let x = i * 30 + 15;
+  let y = j * 30 + 15;
+  this.context.clearRect(x - 15, y - 15, 30, 30);
+  // 重绘背景
+  this.context.fillStyle = '#fafafa';
+  this.context.fillRect(x - 15, y - 15, 30, 30);
+  // 重绘删除部分的棋盘线
+  this.context.beginPath();
+  this.context.strokeStyle = '#4a5a6a';
+  this.context.moveTo(x, y - 15);
+  this.context.lineTo(x, y + 15);
+  this.context.moveTo(x - 15, y);
+  this.context.lineTo(x + 15, y);
+  this.context.stroke();
+  this.context.closePath();
+};
+
 // 封装计算机下棋功能
-chess.aiStep = function () {
+Chess.aiStep = function () {
   let max = 0,
     u = 0,
     v = 0;
-
+  // 电脑下棋得分数组，二维数组
   for (let i = 0; i < 15; i++) {
-    this.blackScore[i] = [];
-    this.whiteScore[i] = [];
+    this.aiBlackScore[i] = [];
+    this.aiWhiteScore[i] = [];
     for (let j = 0; j < 15; j++) {
-      this.blackScore[i][j] = 0;
-      this.whiteScore[i][j] = 0;
+      this.aiBlackScore[i][j] = 0;
+      this.aiWhiteScore[i][j] = 0;
     }
   }
   // 判断计算机落子坐标
   for (let i = 0; i < 15; i++) {
     for (let j = 0; j < 15; j++) {
-      if (this.chessPiece[i][j] == 0) {
+      if (this.chessCross[i][j] == 0) {
         for (let k = 0; k < this.count; k++) {
           if (this.wins[i][j][k]) {
-            switch (this.blackScore[k]) {
+            switch (this.blackWin[k]) {
               case 1:
-                this.blackScore[i][j] += 1;
+                this.aiBlackScore[i][j] += 1;
                 break;
               case 2:
-                this.blackScore[i][j] += 10;
+                this.aiBlackScore[i][j] += 10;
                 break;
               case 3:
-                this.blackScore[i][j] += 100;
+                this.aiBlackScore[i][j] += 100;
                 break;
               case 4:
-                this.blackScore[i][j] += 1000;
+                this.aiBlackScore[i][j] += 1000;
                 break;
               case 5:
-                this.blackScore[i][j] += 10000;
+                this.aiBlackScore[i][j] += 10000;
             }
-            switch (this.whiteScore[k]) {
+            switch (this.whiteWin[k]) {
               case 1:
-                this.whiteScore[i][j] += 2;
+                this.aiWhiteScore[i][j] += 2;
                 break;
               case 2:
-                this.whiteScore[i][j] += 20;
+                this.aiWhiteScore[i][j] += 20;
                 break;
               case 3:
-                this.whiteScore[i][j] += 200;
+                this.aiWhiteScore[i][j] += 200;
                 break;
               case 4:
-                this.whiteScore[i][j] += 2000;
+                this.aiWhiteScore[i][j] += 2000;
                 break;
               case 5:
-                this.whiteScore[i][j] += 20000;
+                this.aiWhiteScore[i][j] += 20000;
             }
           }
         }
-        if (this.aiMode == 1) {
-          if (this.blackScore[i][j] > max) {
-            max = this.blackScore[i][j];
+        // 判断得分最高的点
+        if (this.black) {
+          if (this.aiWhiteScore[i][j] > max) {
+            max = this.aiWhiteScore[i][j];
             u = i;
             v = j;
           }
-          if (this.whiteScore[i][j] > max) {
-            max = this.whiteScore[i][j];
+          if (this.aiBlackScore[i][j] > max) {
+            max = this.aiBlackScore[i][j];
             u = i;
             v = j;
           }
-        } else if (this.aiMode == 2) {
-          if (this.whiteScore[i][j] > max) {
-            max = this.whiteScore[i][j];
+        } else {
+          if (this.aiBlackScore[i][j] > max) {
+            max = this.aiBlackScore[i][j];
             u = i;
             v = j;
           }
-          if (this.blackScore[i][j] > max) {
-            max = this.blackScore[i][j];
+          if (this.aiWhiteScore[i][j] > max) {
+            max = this.aiWhiteScore[i][j];
             u = i;
             v = j;
           }
@@ -285,75 +289,79 @@ chess.aiStep = function () {
       }
     }
   }
-  // 判断计算机落子颜色
-  if (this.black) {
-    this.chessPiece[u][v] = 1;
-  } else {
-    this.chessPiece[u][v] = 2;
-  }
-  this.oneStep(u, v);
-  this.stepScore(u, v);
-  this.black = !this.black;
+  // 在最高得分交叉点落子
+  this.doOneStep(u, v);
 };
 
 // 入口函数
 window.onload = function () {
-  chess.createWins();
-  chess.start();
-};
+  // 调用创建赢法数组函数
+  Chess.createWins();
+  // 初始化棋盘
+  let chessElem = document.getElementById('chess');
+  Chess.initChessBoard(chessElem);
+  // 绑定鼠标点击事件到绘制棋子函数
+  chessElem.onclick = function (e) {
+    if (Chess.over) return false;
+    let x = e.offsetX;
+    let y = e.offsetY;
+    let i = Math.floor(x / 30);
+    let j = Math.floor(y / 30);
+    Chess.doOneStep(i, j);
+    if (Chess.gameMode !== 0) {
+      Chess.aiStep();
+    }
+  };
+  /*********** 添加按钮功能函数 **********/
+  // 悔棋
+  withdrawElem = document.getElementById('withdraw');
+  withdrawElem.onclick = function () {
+    if (Chess.over) {
+      setTimeout(window.alert('胜负已分，请重新开局！'), 0);
+      return false;
+    }
+    // 清理最近一次落子
+    if (Chess.stepRecord.length == 0) {
+      return false;
+    }
+    let [i, j] = Chess.stepRecord.pop();
+    Chess.clearChessCross(i, j);
+    // 在人机模式下，需要回退两步棋
+    if (Chess.gameMode !== 0) {
+      let [i, j] = Chess.stepRecord.pop();
+      Chess.clearChessCross(i, j);
+    }
+  };
 
-// DOM获取canvas元素
-chessBoard = document.getElementById("chessBoard");
-// 绑定鼠标点击事件到绘制棋子函数
-chessBoard.onclick = function (e) {
-  if (chess.over) {
-    return;
-  }
-  let x = e.offsetX;
-  let y = e.offsetY;
-  let i = Math.floor(x / 30);
-  let j = Math.floor(y / 30);
-  chess.getTarget(i, j);
-};
+  // 电脑提示
+  promptElem = document.getElementById('prompt');
+  promptElem.onclick = function () {
+    if (Chess.over) {
+      setTimeout(window.alert('胜负已分，请重新开局！'), 2000);
+      return false;
+    }
+    Chess.aiStep();
+  };
 
-/***********添加按钮功能函数**********/
-// 悔棋
-chessWithdraw = document.getElementById("withdraw");
-chessWithdraw.onclick = function () {
-  if (chess.over) {
-    window.alert("胜负已分，请重新开局！");
-    return;
-  }
-  let [i, j] = chess.stepRecord.pop();
-  chess.clearChessPiece(i, j);
-  // 清理棋子
-  if (chess.stepRecord.length == 0) {
-    chess.start();
-    return;
-  }
-};
+  // 模式切换
+  changeModeElem = document.getElementById('changeMode');
+  changeModeElem.onclick = function () {
+    Chess.gameMode = ++Chess.gameMode % 3;
+    Chess.initChessBoard(chessElem);
+    // 修改页面中当前模式的显示文本
+    let statusElem = document.getElementById('status');
+    if (Chess.gameMode == 0) {
+      statusElem.innerText = '玩家对战';
+    } else if (Chess.gameMode == 1) {
+      statusElem.innerText = '人机对战(玩家先手)';
+    } else if (Chess.gameMode == 2) {
+      statusElem.innerText = '人机对战(电脑先手)';
+    }
+  };
 
-// 模式切换
-chessChangeMode = document.getElementById("changeMode");
-chessChangeMode.onclick = () => {
-  chess.aiMode = ++chess.aiMode % 3;
-  chess.start();
-  chess.changeStatus();
-  // console.log("当前模式", chess.aiMode);
-};
-// 重新开局
-chessRestart = document.getElementById("restart");
-chessRestart.onclick = () => {
-  chess.start();
-};
-
-chess.changeStatus = function () {
-  let status = document.getElementById("status");
-  if (this.aiMode == 0) {
-    status.innerText = "玩家对战";
-  } else if (this.aiMode == 1) {
-    status.innerText = "人机对战(玩家先手)";
-  } else if (this.aiMode == 2) {
-    status.innerText = "人机对战(电脑先手)";
-  }
+  // 重新开局
+  restartElem = document.getElementById('restart');
+  restartElem.onclick = () => {
+    Chess.initChessBoard(chessElem);
+  };
 };
